@@ -3,10 +3,32 @@ import SwiftData
 
 @main
 struct PantrySyncApp: App {
+    @AppStorage("hasSeededData") private var hasSeededData = false
+
+    var sharedModelContainer: ModelContainer = {
+        let schema = Schema([
+            PantryItem.self, GroceryItem.self, Recipe.self,
+            MealPlan.self, DailyNutritionLog.self
+        ])
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        do {
+            return try ModelContainer(for: schema, configurations: [config])
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
+        }
+    }()
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    if !hasSeededData {
+                        let context = sharedModelContainer.mainContext
+                        ScreenshotDataSeeder.seed(context: context)
+                        hasSeededData = true
+                    }
+                }
         }
-        .modelContainer(for: [PantryItem.self, GroceryItem.self, Recipe.self, MealPlan.self, DailyNutritionLog.self])
+        .modelContainer(sharedModelContainer)
     }
 }
