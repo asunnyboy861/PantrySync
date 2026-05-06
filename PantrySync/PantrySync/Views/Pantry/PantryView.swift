@@ -4,6 +4,7 @@ import SwiftData
 struct PantryView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var items: [PantryItem]
+    @Query private var logs: [DailyNutritionLog]
     @State private var viewModel = PantryViewModel()
     @State private var showingAddItem = false
     @State private var showingScanner = false
@@ -36,7 +37,7 @@ struct PantryView: View {
                                         }
                                         .swipeActions(edge: .leading) {
                                             Button {
-                                                viewModel.consumeItem(item, context: modelContext)
+                                                viewModel.consumeItem(item, context: modelContext, logs: logs)
                                             } label: {
                                                 Label("Consumed", systemImage: "checkmark")
                                             }
@@ -59,7 +60,7 @@ struct PantryView: View {
                                         }
                                         .swipeActions(edge: .leading) {
                                             Button {
-                                                viewModel.consumeItem(item, context: modelContext)
+                                                viewModel.consumeItem(item, context: modelContext, logs: logs)
                                             } label: {
                                                 Label("Consumed", systemImage: "checkmark")
                                             }
@@ -81,7 +82,7 @@ struct PantryView: View {
                                     }
                                     .swipeActions(edge: .leading) {
                                         Button {
-                                            viewModel.consumeItem(item, context: modelContext)
+                                            viewModel.consumeItem(item, context: modelContext, logs: logs)
                                         } label: {
                                             Label("Consumed", systemImage: "checkmark")
                                         }

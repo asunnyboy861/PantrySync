@@ -6,6 +6,9 @@ struct MealPlanView: View {
     @Query private var mealPlans: [MealPlan]
     @Query private var recipes: [Recipe]
     @State private var viewModel = MealPlanViewModel()
+    @State private var showingRecipePicker = false
+    @State private var selectedMealType: MealPlanViewModel.MealType = .breakfast
+    @State private var selectedDayIndex = 0
 
     private var currentPlan: MealPlan? {
         viewModel.mealPlan(for: mealPlans)
@@ -26,13 +29,13 @@ struct MealPlanView: View {
                             Section(formatDate(date)) {
                                 mealRow(label: "Breakfast", icon: "sunrise.fill",
                                         recipeID: currentPlan.flatMap { index < $0.breakfastRecipeIDs.count ? $0.breakfastRecipeIDs[index] : nil },
-                                        dayIndex: index)
+                                        dayIndex: index, mealType: .breakfast)
                                 mealRow(label: "Lunch", icon: "sun.max.fill",
                                         recipeID: currentPlan.flatMap { index < $0.lunchRecipeIDs.count ? $0.lunchRecipeIDs[index] : nil },
-                                        dayIndex: index)
+                                        dayIndex: index, mealType: .lunch)
                                 mealRow(label: "Dinner", icon: "moon.stars.fill",
                                         recipeID: currentPlan.flatMap { index < $0.dinnerRecipeIDs.count ? $0.dinnerRecipeIDs[index] : nil },
-                                        dayIndex: index)
+                                        dayIndex: index, mealType: .dinner)
                             }
                         }
                     }
@@ -59,6 +62,17 @@ struct MealPlanView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showingRecipePicker) {
+                RecipePickerView(recipes: recipes, selectedRecipe: { recipe in
+                    if let plan = currentPlan {
+                        viewModel.assignRecipe(recipe.id, to: selectedMealType, dayIndex: selectedDayIndex, plan: plan, context: modelContext)
+                    } else {
+                        let newPlan = MealPlan(weekStartDate: viewModel.selectedWeekStart)
+                        modelContext.insert(newPlan)
+                        viewModel.assignRecipe(recipe.id, to: selectedMealType, dayIndex: selectedDayIndex, plan: newPlan, context: modelContext)
+                    }
+                })
+            }
         }
     }
 
@@ -72,21 +86,88 @@ struct MealPlanView: View {
         date.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
     }
 
-    private func mealRow(label: String, icon: String, recipeID: UUID?, dayIndex: Int) -> some View {
-        HStack {
-            Label(label, systemImage: icon)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(width: 90, alignment: .leading)
-            Spacer()
-            if let id = recipeID {
-                Text(viewModel.recipeName(for: id, recipes: recipes))
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
-            } else {
-                Text("Not planned")
+    private func mealRow(label: String, icon: String, recipeID: UUID?, dayIndex: Int, mealType: MealPlanViewModel.MealType) -> some View {
+        Button {
+            selectedMealType = mealType
+            selectedDayIndex = dayIndex
+            showingRecipePicker = true
+        } label: {
+            HStack {
+                Label(label, systemImage: icon)
                     .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 90, alignment: .leading)
+                Spacer()
+                if let id = recipeID {
+                    Text(viewModel.recipeName(for: id, recipes: recipes))
+                        .font(.subheadline.weight(.medium))
+                        .lineLimit(1)
+                        .foregroundStyle(.primary)
+                } else {
+                    Text("Not planned")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption)
                     .foregroundStyle(.tertiary)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct RecipePickerView: View {
+    @Environment(\.dismiss) private var dismiss
+    let recipes: [Recipe]
+    let selectedRecipe: (Recipe) -> Void
+    @State private var searchText = ""
+
+    private var filteredRecipes: [Recipe] {
+        if searchText.isEmpty {
+            return recipes
+        }
+        return recipes.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List(filteredRecipes) { recipe in
+                Button {
+                    selectedRecipe(recipe)
+                    dismiss()
+                } label: {
+                    HStack {
+                        Image(systemName: "fork.knife")
+                            .foregroundStyle(.orange)
+                        VStack(alignment: .leading) {
+                            Text(recipe.title)
+                                .font(.subheadline.weight(.medium))
+                            HStack(spacing: 8) {
+                                if recipe.prepTimeMinutes > 0 {
+                                    Text("\(recipe.prepTimeMinutes) min")
+                                }
+                                Text("\(recipe.servings) servings")
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if recipe.isFavorite {
+                            Image(systemName: "heart.fill")
+                                .foregroundStyle(.pink)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            .navigationTitle("Select Recipe")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search recipes")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
             }
         }
     }
