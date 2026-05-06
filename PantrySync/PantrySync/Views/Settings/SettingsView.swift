@@ -3,6 +3,9 @@ import SwiftData
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    @Query private var pantryItems: [PantryItem]
+    @Query private var groceryItems: [GroceryItem]
+    @Query private var recipes: [Recipe]
     @AppStorage("useCloudKit") private var useCloudKit = false
     @AppStorage("expirationAlertDays") private var expirationAlertDays = 3
     @AppStorage("calorieGoal") private var calorieGoal = 2000.0
@@ -10,6 +13,12 @@ struct SettingsView: View {
     @AppStorage("carbsGoal") private var carbsGoal = 250.0
     @AppStorage("fatGoal") private var fatGoal = 65.0
     @State private var showingContactSupport = false
+    @State private var showingLoadSampleData = false
+    @State private var showingClearData = false
+
+    private var hasAnyData: Bool {
+        !pantryItems.isEmpty || !groceryItems.isEmpty || !recipes.isEmpty
+    }
 
     var body: some View {
         NavigationStack {
@@ -60,6 +69,26 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Data Management") {
+                    if !hasAnyData {
+                        Button {
+                            showingLoadSampleData = true
+                        } label: {
+                            Label("Load Sample Data", systemImage: "square.and.arrow.down")
+                        }
+                        Text("Load example items to explore the app features")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if hasAnyData {
+                        Button(role: .destructive) {
+                            showingClearData = true
+                        } label: {
+                            Label("Clear All Data", systemImage: "trash")
+                        }
+                    }
+                }
+
                 Section("Subscription") {
                     NavigationLink {
                         PaywallView()
@@ -106,7 +135,30 @@ struct SettingsView: View {
             .sheet(isPresented: $showingContactSupport) {
                 ContactSupportView()
             }
+            .alert("Load Sample Data?", isPresented: $showingLoadSampleData) {
+                Button("Cancel", role: .cancel) { }
+                Button("Load") {
+                    ScreenshotDataSeeder.seed(context: modelContext)
+                }
+            } message: {
+                Text("This will add example pantry items, grocery list items, and recipes to help you explore the app.")
+            }
+            .alert("Clear All Data?", isPresented: $showingClearData) {
+                Button("Cancel", role: .cancel) { }
+                Button("Clear", role: .destructive) {
+                    clearAllData()
+                }
+            } message: {
+                Text("This will permanently delete all your pantry items, grocery lists, and recipes. This action cannot be undone.")
+            }
         }
+    }
+
+    private func clearAllData() {
+        for item in pantryItems { modelContext.delete(item) }
+        for item in groceryItems { modelContext.delete(item) }
+        for item in recipes { modelContext.delete(item) }
+        try? modelContext.save()
     }
 }
 

@@ -3,8 +3,6 @@ import SwiftData
 
 @main
 struct PantrySyncApp: App {
-    @AppStorage("hasSeededData") private var hasSeededData = false
-
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             PantryItem.self, GroceryItem.self, Recipe.self,
@@ -21,13 +19,6 @@ struct PantrySyncApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .onAppear {
-                    if !hasSeededData {
-                        let context = sharedModelContainer.mainContext
-                        ScreenshotDataSeeder.seed(context: context)
-                        hasSeededData = true
-                    }
-                }
         }
         .modelContainer(sharedModelContainer)
     }
