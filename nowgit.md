@@ -9,22 +9,21 @@
 | **Repo URL** | https://github.com/asunnyboy861/PantrySync |
 | **Visibility** | Public |
 | **Primary Language** | Swift |
-| **GitHub Pages** | ✅ **ENABLED** (from `/docs` folder) |
+| **GitHub Pages** | Enabled (from /docs folder) |
 
 ## Policy Pages (Deployed from Main Repository /docs)
 
 | Page | URL | Status |
 |------|-----|--------|
-| Landing Page | https://asunnyboy861.github.io/PantrySync/ | ✅ Active |
-| Support | https://asunnyboy861.github.io/PantrySync/support.html | ✅ Active |
-| Privacy Policy | https://asunnyboy861.github.io/PantrySync/privacy.html | ✅ Active |
-| Terms of Use | https://asunnyboy861.github.io/PantrySync/terms.html | ✅ Active |
+| Landing Page | https://asunnyboy861.github.io/PantrySync/ | Active |
+| Support | https://asunnyboy861.github.io/PantrySync/support.html | Active |
+| Privacy Policy | https://asunnyboy861.github.io/PantrySync/privacy.html | Active |
+| Terms of Use | https://asunnyboy861.github.io/PantrySync/terms.html | Active |
 
-**Note**: Terms of Use required for IAP subscription apps.
+Note: Terms of Use required for IAP subscription apps.
 
 ## Repository Structure
 
-### Main App Repository
 ```
 PantrySync/
 ├── PantrySync/                       # iOS App Source Code
@@ -45,11 +44,6 @@ PantrySync/
 │   ├── privacy.html                  # Privacy Policy
 │   └── terms.html                    # Terms of Use
 ├── screenshots/                      # App Store Screenshots
-│   ├── 01_pantry.jpg
-│   ├── 02_grocery.jpg
-│   ├── 03_recipes.jpg
-│   ├── 04_mealplan.jpg
-│   └── 05_nutrition.jpg
 ├── .github/workflows/
 │   └── pages.yml                     # GitHub Pages Deployment
 ├── us.md                             # English Development Guide

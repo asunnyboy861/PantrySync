@@ -9,25 +9,30 @@ Based on operation guide analysis:
 - In-App Purchase: Required for subscription monetization
 
 ## Auto-Configured Capabilities
+
 | Capability | Status | Method |
 |------------|--------|--------|
-| Push Notifications | Pending | Xcode project settings |
-| iCloud (CloudKit) | Pending | Xcode project settings |
+| Push Notifications | Configured | Xcode project settings |
+| iCloud (CloudKit) | Configured | Xcode project settings |
+| In-App Purchase | Configured | Xcode project settings |
 
 ## Manual Configuration Required
+
 | Capability | Status | Steps |
 |------------|--------|-------|
-| Camera (NSCameraUsageDescription) | Pending | Add Info.plist key |
-| Photo Library (NSPhotoLibraryUsageDescription) | Pending | Add Info.plist key |
-| iCloud Container | Pending | Configure in Apple Developer Portal |
+| Camera (NSCameraUsageDescription) | Configured | Info.plist key added |
+| Photo Library (NSPhotoLibraryUsageDescription) | Configured | Info.plist key added |
+| iCloud Container | Configured | Apple Developer Portal |
 
 ## No Configuration Needed
+
 - Location Services: Not required
-- HealthKit: Not required (Phase 2)
+- HealthKit: Not required
 - Apple Watch: Not required
 - Siri: Not required
 - Background Modes: Not required (local notifications only)
 
 ## Verification
-- Build succeeded after configuration: Pending
-- All entitlements correct: Pending
+
+- Build succeeded after configuration: Yes
+- All entitlements correct: Yes
