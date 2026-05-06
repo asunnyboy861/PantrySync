@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import StoreKit
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
@@ -15,6 +16,8 @@ struct SettingsView: View {
     @State private var showingContactSupport = false
     @State private var showingLoadSampleData = false
     @State private var showingClearData = false
+    @State private var showingPaywall = false
+    @State private var isRestoring = false
 
     private var hasAnyData: Bool {
         !pantryItems.isEmpty || !groceryItems.isEmpty || !recipes.isEmpty
@@ -90,19 +93,39 @@ struct SettingsView: View {
                 }
 
                 Section("Subscription") {
-                    NavigationLink {
-                        PaywallView()
-                    } label: {
+                    if PurchaseManager.shared.isPremium {
                         HStack {
-                            Label("Upgrade to Premium", systemImage: "crown.fill")
+                            Label("Premium Active", systemImage: "checkmark.seal.fill")
+                                .foregroundStyle(.green)
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
+                            Text("Thank you!")
                                 .foregroundStyle(.secondary)
                         }
+                    } else {
+                        Button {
+                            showingPaywall = true
+                        } label: {
+                            Label("Upgrade to Premium", systemImage: "crown.fill")
+                        }
                     }
-                    Button("Restore Purchases") {
+                    Button {
+                        Task {
+                            isRestoring = true
+                            await PurchaseManager.shared.restorePurchases()
+                            isRestoring = false
+                        }
+                    } label: {
+                        if isRestoring {
+                            HStack {
+                                Text("Restoring...")
+                                Spacer()
+                                ProgressView()
+                            }
+                        } else {
+                            Label("Restore Purchases", systemImage: "arrow.clockwise")
+                        }
                     }
+                    .disabled(isRestoring)
                 }
 
                 Section("Support") {
@@ -135,6 +158,9 @@ struct SettingsView: View {
             .sheet(isPresented: $showingContactSupport) {
                 ContactSupportView()
             }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
             .alert("Load Sample Data?", isPresented: $showingLoadSampleData) {
                 Button("Cancel", role: .cancel) { }
                 Button("Load") {
@@ -165,6 +191,11 @@ struct SettingsView: View {
 struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedPlan = 0
+    @State private var isPurchasing = false
+
+    private var purchaseManager: PurchaseManager {
+        PurchaseManager.shared
+    }
 
     var body: some View {
         NavigationStack {
@@ -192,22 +223,49 @@ struct PaywallView: View {
                     .padding()
                     .background(Color(.systemGray6), in: RoundedRectangle(cornerRadius: 12))
 
-                    Picker("Plan", selection: $selectedPlan) {
-                        Text("Monthly $4.99").tag(0)
-                        Text("Yearly $29.99").tag(1)
-                        Text("Lifetime $79.99").tag(2)
+                    VStack(spacing: 12) {
+                        if purchaseManager.isLoading {
+                            ProgressView("Loading...")
+                        } else {
+                            planButton(index: 0, product: purchaseManager.monthlyProduct, title: "Monthly", price: "$4.99")
+                            planButton(index: 1, product: purchaseManager.yearlyProduct, title: "Yearly", price: "$29.99")
+                            planButton(index: 2, product: purchaseManager.lifetimeProduct, title: "Lifetime", price: "$79.99")
+                        }
                     }
-                    .pickerStyle(.segmented)
 
                     Button {
+                        Task {
+                            isPurchasing = true
+                            let product: Product?
+                            switch selectedPlan {
+                            case 0: product = purchaseManager.monthlyProduct
+                            case 1: product = purchaseManager.yearlyProduct
+                            case 2: product = purchaseManager.lifetimeProduct
+                            default: product = nil
+                            }
+                            if let product = product {
+                                let success = await purchaseManager.purchase(product)
+                                if success {
+                                    dismiss()
+                                }
+                            }
+                            isPurchasing = false
+                        }
                     } label: {
-                        Text(selectedPlan == 2 ? "Purchase Lifetime" : "Start 7-Day Free Trial")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 12))
+                        if isPurchasing {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                        } else {
+                            Text(selectedPlan == 2 ? "Purchase Lifetime" : "Start 7-Day Free Trial")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                        }
                     }
+                    .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 12))
+                    .disabled(isPurchasing || purchaseManager.products.isEmpty)
 
                     Text("Cancel anytime. No charge during trial.")
                         .font(.caption2)
@@ -221,6 +279,32 @@ struct PaywallView: View {
                 }
             }
         }
+    }
+
+    private func planButton(index: Int, product: Product?, title: String, price: String) -> some View {
+        Button {
+            selectedPlan = index
+        } label: {
+            HStack {
+                Image(systemName: selectedPlan == index ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selectedPlan == index ? Color.accentColor : .secondary)
+                VStack(alignment: .leading) {
+                    Text(title)
+                        .font(.headline)
+                    if index == 1 {
+                        Text("Save 50%")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
+                }
+                Spacer()
+                Text(product?.displayPrice ?? price)
+                    .font(.headline)
+            }
+            .padding()
+            .background(selectedPlan == index ? Color.accentColor.opacity(0.1) : Color.clear, in: RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
     }
 
     private func premiumFeatureRow(icon: String, title: String) -> some View {
