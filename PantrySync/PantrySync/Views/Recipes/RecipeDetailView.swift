@@ -5,6 +5,7 @@ struct RecipeDetailView: View {
     @Environment(\.modelContext) private var modelContext
     let recipe: Recipe
     @State private var viewModel = RecipeViewModel()
+    @State private var showingEditRecipe = false
 
     var body: some View {
         ScrollView {
@@ -21,6 +22,11 @@ struct RecipeDetailView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
+                    showingEditRecipe = true
+                } label: {
+                    Image(systemName: "pencil")
+                }
+                Button {
                     viewModel.addIngredientsToGroceryList(recipe, context: modelContext)
                 } label: {
                     Image(systemName: "cart.badge.plus")
@@ -32,6 +38,9 @@ struct RecipeDetailView: View {
                         .foregroundStyle(recipe.isFavorite ? .pink : .secondary)
                 }
             }
+        }
+        .sheet(isPresented: $showingEditRecipe) {
+            EditRecipeView(recipe: recipe)
         }
     }
 

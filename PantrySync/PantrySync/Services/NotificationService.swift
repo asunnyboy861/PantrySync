@@ -12,7 +12,7 @@ struct NotificationService {
 
     static func scheduleExpirationAlert(for item: String, expirationDate: Date, id: String) {
         let content = UNMutableNotificationContent()
-        content.title = "PantrySync Alert"
+        content.title = "PantrySync Pro Alert"
         content.body = "\(item) is expiring soon!"
         content.sound = .default
 
@@ -32,7 +32,7 @@ struct NotificationService {
 
     static func scheduleExpiringSoonAlert(for item: String, daysLeft: Int, id: String) {
         let content = UNMutableNotificationContent()
-        content.title = "PantrySync"
+        content.title = "PantrySync Pro"
         content.body = "\(item) expires in \(daysLeft) day\(daysLeft == 1 ? "" : "s")"
         content.sound = .default
 

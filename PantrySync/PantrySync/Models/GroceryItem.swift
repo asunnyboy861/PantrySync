@@ -3,7 +3,7 @@ import Foundation
 
 @Model
 final class GroceryItem {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var name: String
     var category: String
     var quantity: Double

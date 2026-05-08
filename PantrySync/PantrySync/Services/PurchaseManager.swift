@@ -49,11 +49,18 @@ final class PurchaseManager {
             ]
             let storeProducts = try await Product.products(for: productIDs)
             products = storeProducts.sorted { $0.price < $1.price }
+            if products.isEmpty {
+                self.error = "No products found. Please try again."
+            }
         } catch {
             self.error = error.localizedDescription
         }
         
         isLoading = false
+    }
+    
+    func retryLoadProducts() async {
+        await loadProducts()
     }
     
     func purchase(_ product: Product) async -> Bool {

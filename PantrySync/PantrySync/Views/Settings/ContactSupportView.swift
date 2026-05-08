@@ -72,7 +72,7 @@ struct ContactSupportView: View {
             "name": name,
             "email": email,
             "message": message,
-            "app": "PantrySync"
+            "app": "PantrySync Pro"
         ]
 
         guard let url = URL(string: "https://formsubmit.co/ajax/iocompile67692@gmail.com") else {

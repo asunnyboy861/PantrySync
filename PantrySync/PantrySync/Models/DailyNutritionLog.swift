@@ -3,7 +3,7 @@ import Foundation
 
 @Model
 final class DailyNutritionLog {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var date: Date
     var totalCalories: Double
     var totalProtein: Double

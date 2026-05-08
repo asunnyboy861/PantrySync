@@ -39,29 +39,44 @@
 ## Free Tier Features
 
 - Pantry inventory (up to 30 items)
-- Grocery list (up to 50 items)
+- Grocery list (up to 15 items)
+- Recipes (up to 3)
 - Manual item entry
-- Basic expiration alerts (3 items)
-- Basic recipe browsing
+- Basic expiration alerts (fixed 3 days)
+- Basic nutrition tracking (daily view only)
 
 ## Premium Features
 
 - Unlimited pantry items
 - Unlimited grocery items
+- Unlimited recipes
 - Receipt OCR scanning
 - Barcode scanning with nutrition lookup
-- Recipe recommendations based on inventory
 - Full meal planning calendar
-- Nutrition tracking with charts
-- Waste analytics
-- iCloud family sharing
-- Widget customization
-- All expiration alerts
+- Nutrition tracking with weekly charts
+- iCloud sync across devices
+- Custom expiration alert days (1-14 days)
+- Family sharing support
 
-## Free Trial
+## Free Trial (Premium)
 
 - **Duration**: 7 days
 - **Type**: Free trial (auto-converts to paid)
+- **Configuration Location**: App Store Connect (NOT in code or price.md)
+- **Setup Steps**:
+  1. Go to App Store Connect → Your App → Subscriptions
+  2. Select "PantrySync Premium" subscription group
+  3. Click "Subscription Prices" → "Introductory Offers"
+  4. Add "Free Trial" for 7 days
+  5. Apply to both Monthly and Yearly subscriptions
+- **Note**: Users can experience all Premium features for 7 days before deciding to subscribe
+
+## Free Tier (Forever Free)
+
+- **Price**: Free
+- **Duration**: Unlimited (no expiration)
+- **Features**: Limited access to basic features (see Free Tier Features above)
+- **Upgrade**: Users can upgrade to Premium anytime to unlock all features
 
 ## Policy Pages Required
 

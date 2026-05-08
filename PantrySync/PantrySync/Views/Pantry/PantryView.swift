@@ -8,16 +8,39 @@ struct PantryView: View {
     @State private var viewModel = PantryViewModel()
     @State private var showingAddItem = false
     @State private var showingScanner = false
+    @State private var showingReceiptScanner = false
+    @State private var showingPaywall = false
+    @State private var showingSettings = false
+    @State private var editingItem: PantryItem?
 
     var body: some View {
         NavigationStack {
             Group {
                 if items.filter({ !$0.isConsumed }).isEmpty {
-                    ContentUnavailableView(
-                        "Empty Pantry",
-                        systemImage: "refrigerator",
-                        description: Text("Add items to start tracking your kitchen inventory")
-                    )
+                    ContentUnavailableView {
+                        Label("Empty Pantry", systemImage: "refrigerator")
+                    } description: {
+                        Text("Add items to start tracking your kitchen inventory")
+                    } actions: {
+                        Button {
+                            let currentCount = items.filter { !$0.isConsumed }.count
+                            if PremiumFeatureGate.shared.isUnderLimit(.unlimitedPantry, currentCount: currentCount) {
+                                showingAddItem = true
+                            } else {
+                                showingPaywall = true
+                            }
+                        } label: {
+                            Label("Add Item", systemImage: "plus")
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        Button {
+                            ScreenshotDataSeeder.seed(context: modelContext)
+                        } label: {
+                            Label("Try Sample Data", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 } else {
                     List {
                         let expiring = viewModel.expiringItems(items)
@@ -28,6 +51,10 @@ struct PantryView: View {
                             Section("Expired") {
                                 ForEach(expired) { item in
                                     PantryItemRow(item: item)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            editingItem = item
+                                        }
                                         .swipeActions(edge: .trailing) {
                                             Button(role: .destructive) {
                                                 viewModel.deleteItem(item, context: modelContext)
@@ -51,6 +78,10 @@ struct PantryView: View {
                             Section("Expiring Soon") {
                                 ForEach(expiring) { item in
                                     PantryItemRow(item: item)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            editingItem = item
+                                        }
                                         .swipeActions(edge: .trailing) {
                                             Button(role: .destructive) {
                                                 viewModel.deleteItem(item, context: modelContext)
@@ -73,6 +104,10 @@ struct PantryView: View {
                         Section {
                             ForEach(filtered) { item in
                                 PantryItemRow(item: item)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        editingItem = item
+                                    }
                                     .swipeActions(edge: .trailing) {
                                         Button(role: .destructive) {
                                             viewModel.deleteItem(item, context: modelContext)
@@ -97,6 +132,15 @@ struct PantryView: View {
             .searchable(text: $viewModel.searchText, prompt: "Search items...")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    if !PurchaseManager.shared.isPremium {
+                        Button {
+                            showingPaywall = true
+                        } label: {
+                            Image(systemName: "crown.fill")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+
                     Menu {
                         Picker("Category", selection: $viewModel.selectedCategory) {
                             Text("All").tag(String?.none)
@@ -120,15 +164,40 @@ struct PantryView: View {
                     }
 
                     Button {
-                        showingScanner = true
+                        if PremiumFeatureGate.shared.canUseFeature(.barcodeScan) {
+                            showingScanner = true
+                        } else {
+                            showingPaywall = true
+                        }
                     } label: {
                         Image(systemName: "barcode.viewfinder")
                     }
 
                     Button {
-                        showingAddItem = true
+                        if PremiumFeatureGate.shared.canUseFeature(.receiptScan) {
+                            showingReceiptScanner = true
+                        } else {
+                            showingPaywall = true
+                        }
+                    } label: {
+                        Image(systemName: "doc.text.viewfinder")
+                    }
+
+                    Button {
+                        let currentCount = items.filter { !$0.isConsumed }.count
+                        if PremiumFeatureGate.shared.isUnderLimit(.unlimitedPantry, currentCount: currentCount) {
+                            showingAddItem = true
+                        } else {
+                            showingPaywall = true
+                        }
                     } label: {
                         Image(systemName: "plus")
+                    }
+
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape.fill")
                     }
                 }
             }
@@ -137,6 +206,18 @@ struct PantryView: View {
             }
             .sheet(isPresented: $showingScanner) {
                 BarcodeScannerView()
+            }
+            .sheet(isPresented: $showingReceiptScanner) {
+                ReceiptScannerView()
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
+            .sheet(item: $editingItem) { item in
+                EditPantryItemView(item: item)
             }
         }
     }

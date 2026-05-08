@@ -6,18 +6,41 @@ struct RecipeListView: View {
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
     @State private var viewModel = RecipeViewModel()
     @State private var showingAddRecipe = false
+    @State private var showingPaywall = false
 
     var body: some View {
         NavigationStack {
             Group {
                 if recipes.isEmpty {
-                    ContentUnavailableView(
-                        "No Recipes",
-                        systemImage: "book.closed",
-                        description: Text("Add your favorite recipes to get started")
-                    )
+                    ContentUnavailableView {
+                        Label("No Recipes", systemImage: "book.closed")
+                    } description: {
+                        Text("Add your favorite recipes to get started")
+                    } actions: {
+                        Button {
+                            if PremiumFeatureGate.shared.isUnderLimit(.unlimitedRecipes, currentCount: recipes.count) {
+                                showingAddRecipe = true
+                            } else {
+                                showingPaywall = true
+                            }
+                        } label: {
+                            Label("Add Recipe", systemImage: "plus")
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        Button {
+                            ScreenshotDataSeeder.seed(context: modelContext)
+                        } label: {
+                            Label("Try Sample Data", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 } else {
                     List {
+                        if !PurchaseManager.shared.isPremium {
+                            premiumBanner
+                        }
+
                         let filtered = viewModel.filteredRecipes(recipes)
                         ForEach(filtered) { recipe in
                             NavigationLink {
@@ -49,6 +72,15 @@ struct RecipeListView: View {
             .searchable(text: $viewModel.searchText, prompt: "Search recipes or ingredients...")
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    if !PurchaseManager.shared.isPremium {
+                        Button {
+                            showingPaywall = true
+                        } label: {
+                            Image(systemName: "crown.fill")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+
                     Button {
                         viewModel.showFavoritesOnly.toggle()
                     } label: {
@@ -56,7 +88,12 @@ struct RecipeListView: View {
                             .foregroundStyle(viewModel.showFavoritesOnly ? .pink : .secondary)
                     }
                     Button {
-                        showingAddRecipe = true
+                        let currentCount = recipes.count
+                        if PremiumFeatureGate.shared.isUnderLimit(.unlimitedRecipes, currentCount: currentCount) {
+                            showingAddRecipe = true
+                        } else {
+                            showingPaywall = true
+                        }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -65,7 +102,37 @@ struct RecipeListView: View {
             .sheet(isPresented: $showingAddRecipe) {
                 AddRecipeView()
             }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
         }
+    }
+
+    private var premiumBanner: some View {
+        Button {
+            showingPaywall = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "crown.fill")
+                    .foregroundStyle(.orange)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Go Premium")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Unlock unlimited recipes & premium features")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+            .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
     }
 }
 

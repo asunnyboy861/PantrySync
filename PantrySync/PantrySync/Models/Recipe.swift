@@ -3,7 +3,7 @@ import Foundation
 
 @Model
 final class Recipe {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var title: String
     var source: String?
     var sourceURL: String?

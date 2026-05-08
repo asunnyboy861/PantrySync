@@ -3,7 +3,7 @@ import Foundation
 
 @Model
 final class MealPlan {
-    @Attribute(.unique) var id: UUID
+    var id: UUID
     var weekStartDate: Date
     var breakfastRecipeIDs: [UUID]
     var lunchRecipeIDs: [UUID]

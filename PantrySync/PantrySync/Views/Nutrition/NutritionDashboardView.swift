@@ -6,6 +6,7 @@ struct NutritionDashboardView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var logs: [DailyNutritionLog]
     @State private var viewModel = NutritionViewModel()
+    @State private var showingPaywall = false
 
     private var todayLog: DailyNutritionLog? {
         viewModel.log(for: Date(), logs: logs)
@@ -15,10 +16,18 @@ struct NutritionDashboardView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
+                    if !PurchaseManager.shared.isPremium {
+                        premiumBanner
+                    }
+
                     if let log = todayLog {
                         calorieRing(log: log)
                         macroBreakdown(log: log)
-                        weeklyChart
+                        if PremiumFeatureGate.shared.canUseFeature(.nutritionCharts) {
+                            weeklyChart
+                        } else {
+                            lockedWeeklyChart
+                        }
                     } else {
                         noDataView
                     }
@@ -26,7 +35,47 @@ struct NutritionDashboardView: View {
                 .padding()
             }
             .navigationTitle("Nutrition")
+            .toolbar {
+                if !PurchaseManager.shared.isPremium {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showingPaywall = true
+                        } label: {
+                            Image(systemName: "crown.fill")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
         }
+    }
+
+    private var premiumBanner: some View {
+        Button {
+            showingPaywall = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "crown.fill")
+                    .foregroundStyle(.orange)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Go Premium")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Unlock full nutrition tracking & charts")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+            .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
     }
 
     private func calorieRing(log: DailyNutritionLog) -> some View {
@@ -107,10 +156,49 @@ struct NutritionDashboardView: View {
     }
 
     private var noDataView: some View {
-        ContentUnavailableView(
-            "No Nutrition Data",
-            systemImage: "chart.bar",
-            description: Text("Log your meals to track nutrition")
-        )
+        ContentUnavailableView {
+            Label("No Nutrition Data", systemImage: "chart.bar")
+        } description: {
+            Text("Consume pantry items to automatically track your daily nutrition.")
+        } actions: {
+            Button {
+                NotificationCenter.default.post(name: .switchToPantryTab, object: nil)
+            } label: {
+                Label("Go to Pantry", systemImage: "refrigerator.fill")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private var lockedWeeklyChart: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("This Week")
+                .font(.headline)
+
+            Button {
+                showingPaywall = true
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: "lock.fill")
+                        .foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Weekly Charts Locked")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Upgrade to Premium to view weekly nutrition charts")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                }
+                .padding()
+                .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding()
+        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 12))
+        .shadow(color: .black.opacity(0.05), radius: 4)
     }
 }

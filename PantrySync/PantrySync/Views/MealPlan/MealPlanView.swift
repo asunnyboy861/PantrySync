@@ -7,6 +7,7 @@ struct MealPlanView: View {
     @Query private var recipes: [Recipe]
     @State private var viewModel = MealPlanViewModel()
     @State private var showingRecipePicker = false
+    @State private var showingPaywall = false
     @State private var selectedMealType: MealPlanViewModel.MealType = .breakfast
     @State private var selectedDayIndex = 0
 
@@ -18,13 +19,24 @@ struct MealPlanView: View {
         NavigationStack {
             Group {
                 if recipes.isEmpty {
-                    ContentUnavailableView(
-                        "No Recipes Yet",
-                        systemImage: "book.closed",
-                        description: Text("Add recipes first to plan your meals")
-                    )
+                    ContentUnavailableView {
+                        Label("No Recipes Yet", systemImage: "book.closed")
+                    } description: {
+                        Text("Add recipes first to plan your meals")
+                    } actions: {
+                        Button {
+                            ScreenshotDataSeeder.seed(context: modelContext)
+                        } label: {
+                            Label("Try Sample Data", systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.bordered)
+                    }
                 } else {
                     List {
+                        if !PurchaseManager.shared.isPremium {
+                            premiumBanner
+                        }
+
                         ForEach(Array(viewModel.weekDates().enumerated()), id: \.offset) { index, date in
                             Section(formatDate(date)) {
                                 mealRow(label: "Breakfast", icon: "sunrise.fill",
@@ -55,6 +67,15 @@ struct MealPlanView: View {
                         .font(.subheadline.weight(.semibold))
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
+                    if !PurchaseManager.shared.isPremium {
+                        Button {
+                            showingPaywall = true
+                        } label: {
+                            Image(systemName: "crown.fill")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+
                     Button {
                         viewModel.selectedWeekStart = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: viewModel.selectedWeekStart) ?? viewModel.selectedWeekStart
                     } label: {
@@ -73,7 +94,37 @@ struct MealPlanView: View {
                     }
                 })
             }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
+            }
         }
+    }
+
+    private var premiumBanner: some View {
+        Button {
+            showingPaywall = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "crown.fill")
+                    .foregroundStyle(.orange)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Go Premium")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Unlock advanced meal planning features")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .padding()
+            .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets())
+        .listRowBackground(Color.clear)
     }
 
     private var weekRangeString: String {
@@ -88,9 +139,13 @@ struct MealPlanView: View {
 
     private func mealRow(label: String, icon: String, recipeID: UUID?, dayIndex: Int, mealType: MealPlanViewModel.MealType) -> some View {
         Button {
-            selectedMealType = mealType
-            selectedDayIndex = dayIndex
-            showingRecipePicker = true
+            if PremiumFeatureGate.shared.canUseFeature(.mealPlan) {
+                selectedMealType = mealType
+                selectedDayIndex = dayIndex
+                showingRecipePicker = true
+            } else {
+                showingPaywall = true
+            }
         } label: {
             HStack {
                 Label(label, systemImage: icon)
